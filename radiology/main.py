@@ -240,7 +240,7 @@ def main():
     from monailabel.utils.others.generic import device_list, file_ext
 
     os.putenv("MASTER_ADDR", "127.0.0.1")
-    os.putenv("MASTER_PORT", "1234")
+    os.putenv("MASTER_PORT", "8000")
 
     logging.basicConfig(
         level=logging.INFO,
@@ -249,21 +249,26 @@ def main():
         force=True,
     )
 
-    home = str(Path.home())
-    studies = f"{home}/Dataset/Radiology"
-
     parser = argparse.ArgumentParser()
-    parser.add_argument("-s", "--studies", default=studies)
+    parser.add_argument("-s", "--studies", default='data', type=str, help="Path to studies")
     parser.add_argument("-m", "--model", default="localization_spine,localization_vertebra,segmentation_vertebra")
     parser.add_argument("-t", "--test", default="infer", choices=("train", "infer"))
     args = parser.parse_args()
 
     app_dir = os.path.dirname(__file__)
+
+    # # for debug
+    args.studies = f"../data/imagesTr"
+    args.model = 'segmentation_cardiac' #'deepedit'
+
     studies = args.studies
+
     conf = {
         "models": args.model,
         "preload": "false",
     }
+
+    conf['use_pretrained_model'] = 'true'
 
     app = MyApp(app_dir, studies, conf)
 
@@ -275,10 +280,10 @@ def main():
 
         # Run on all devices
         for device in device_list():
-            # res = app.infer(request={"model": args.model, "image": image_id, "device": device})
-            res = app.infer(
-                request={"model": "vertebra_pipeline", "image": image_id, "device": device, "slicer": False}
-            )
+            res = app.infer(request={"model": args.model, "image": image_id, "device": device})
+            # res = app.infer(
+            #     request={"model": "vertebra_pipeline", "image": image_id, "device": device, "slicer": False}
+            # )
             label = res["file"]
             label_json = res["params"]
             test_dir = os.path.join(args.studies, "test_labels")
@@ -293,18 +298,18 @@ def main():
             break
         return
 
-    # Train
-    app.train(
-        request={
-            "model": args.model,
-            "max_epochs": 10,
-            "dataset": "Dataset",  # PersistentDataset, CacheDataset
-            "train_batch_size": 1,
-            "val_batch_size": 1,
-            "multi_gpu": False,
-            "val_split": 0.1,
-        },
-    )
+    # # Train
+    # app.train(
+    #     request={
+    #         "model": args.model,
+    #         "max_epochs": 10,
+    #         "dataset": "Dataset",  # PersistentDataset, CacheDataset
+    #         "train_batch_size": 1,
+    #         "val_batch_size": 1,
+    #         "multi_gpu": False,
+    #         "val_split": 0.1,
+    #     },
+    # )
 
 
 if __name__ == "__main__":

@@ -66,13 +66,13 @@ class DeepEdit(TaskConfig):
         # Number of input channels - 4 for BRATS and 1 for spleen
         self.number_intensity_ch = 1
 
-        self.network_dir = self.conf.get("network", "unetcnx")
-        model_file_name = self.conf.get("model_file_name", "best_model.pt")
+        self.network_dir = self.conf.get("network", "swinunetr")
+        model_file_name = self.conf.get("model_file_name", "best_model.pth")
 
         # Model Files
         self.path = [
-            os.path.join(self.model_dir, self.network_dir, f"pre_{model_file_name}.pt"),  # pretrained
-            os.path.join(self.model_dir, self.network_dir, f"{model_file_name}.pt"),  # published
+            os.path.join(self.model_dir, self.network_dir, f"{model_file_name}"),  # pretrained
+            os.path.join(self.model_dir, self.network_dir, f"out_model.pth"),  # published
         ]
 
         self.target_spacing = (0.7, 0.7, 1.0)  # target space for image
@@ -80,10 +80,9 @@ class DeepEdit(TaskConfig):
 
         # Network
         self.network = network(
-            'unetcnx',
+            'swinunetr',
             in_channels=len(self.labels) + self.number_intensity_ch,
-            out_channels=len(self.labels),
-            device="cuda" if torch.cuda.is_available() else "cpu",
+            out_channels=len(self.labels)
         )
 
         self.network_with_dropout = None

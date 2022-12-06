@@ -57,7 +57,7 @@ class SegmentationCardiac(BasicInferTask):
             description=description,
             **kwargs,
         )
-
+        self.model_state_dict = 'state_dict'
         self.spatial_size = spatial_size
         self.target_spacing = target_spacing
 
@@ -68,11 +68,11 @@ class SegmentationCardiac(BasicInferTask):
             EnsureChannelFirstd(keys="image"),
             Orientationd(keys=["image"], axcodes="RAS"),
             Spacingd(keys="image", pixdim=self.target_spacing, mode=("bilinear")),
-            ScaleIntensityRanged(keys="image", a_min=-175, a_max=250, b_min=0.0, b_max=1.0, clip=True)
+            ScaleIntensityRanged(keys="image", a_min=-175, a_max=250, b_min=0.0, b_max=1.0, clip=True),
         ]
 
     def inferer(self, data=None) -> Inferer:
-        return SlidingWindowInferer(roi_size=self.spatial_size, sw_batch_size=4, overlap=0.25)
+        return SlidingWindowInferer(roi_size=self.spatial_size, sw_batch_size=2, overlap=0.25)
 
     def post_transforms(self, data=None) -> Sequence[Callable]:
         return [

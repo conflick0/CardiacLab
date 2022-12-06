@@ -69,7 +69,7 @@ class DeepEdit(BasicInferTask):
             output_json_key="result",
             **kwargs,
         )
-
+        self.model_state_dict = 'state_dict'
         self.spatial_size = spatial_size
         self.target_spacing = target_spacing
         self.number_intensity_ch = number_intensity_ch
@@ -117,9 +117,8 @@ class DeepEdit(BasicInferTask):
     def post_transforms(self, data=None) -> Sequence[Callable]:
         return [
             EnsureTyped(keys="pred", device=data.get("device") if data else None),
-            Activationsd(keys="pred", softmax=True),
             AsDiscreted(keys="pred", argmax=True),
-            SqueezeDimd(keys="pred", dim=0),
+            Orientationd(keys=["pred"], axcodes="LPS"),
             ToNumpyd(keys="pred"),
             Restored(keys="pred", ref_image="image"),
         ]

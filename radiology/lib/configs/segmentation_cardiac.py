@@ -53,8 +53,8 @@ class SegmentationCardiac(TaskConfig):
         self.labels = {
             "cardiac": 1,
         }
-        self.network_dir = self.conf.get("network", "unetcnx")
-        model_file_name = self.conf.get("model_file_name", "best_model.pt")
+        self.network_dir = self.conf.get("network", "swinunetr")
+        model_file_name = self.conf.get("model_file_name", "best_model.pth")
 
         # Model Files
         self.path = [
@@ -66,7 +66,7 @@ class SegmentationCardiac(TaskConfig):
 
         # Network
         self.network = network(
-            'unetcnx',
+            'swinunetr',
             in_channels=1,
             out_channels=2
         )

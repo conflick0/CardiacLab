@@ -2,7 +2,7 @@
 ### Example user template
 # My Project
 data
-model
+radiology/model
 logs
 bin
 
