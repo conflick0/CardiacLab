@@ -15,7 +15,7 @@ from typing import Any, Dict, Optional, Union
 
 import lib.infers
 import lib.trainers
-from monai.networks.nets import UNet
+from monai.networks.nets import SegResNet
 
 from monailabel.interfaces.config import TaskConfig
 from monailabel.interfaces.tasks.infer_v2 import InferTask
@@ -65,21 +65,22 @@ class SegmentationVertebra(TaskConfig):
 
         # Download PreTrained Model
         if strtobool(self.conf.get("use_pretrained_model", "true")):
-            url = f"{self.conf.get('pretrained_path', self.PRE_TRAINED_PATH)}/segmentation_vertebra_unet.pt"
+            url = f"{self.conf.get('pretrained_path', self.PRE_TRAINED_PATH)}"
+            url = f"{url}/radiology_segmentation_segresnet_vertebra.pt"
             download_file(url, self.path[0])
 
         self.target_spacing = (1.0, 1.0, 1.0)  # target space for image
         self.roi_size = (128, 128, 96)
 
         # Network
-        self.network = UNet(
+        self.network = SegResNet(
             spatial_dims=3,
             in_channels=2,
             out_channels=2,
-            channels=(16, 32, 64, 128, 256),
-            strides=(2, 2, 2, 2),
-            num_res_units=2,
-            dropout=0.2,
+            init_filters=32,
+            blocks_down=(1, 2, 2, 4),
+            blocks_up=(1, 1, 1),
+            dropout_prob=0.2,
         )
 
     def infer(self) -> Union[InferTask, Dict[str, InferTask]]:
@@ -105,7 +106,6 @@ class SegmentationVertebra(TaskConfig):
             load_path=load_path,
             publish_path=self.path[1],
             description="Train vertebra segmentation Model",
-            dimension=3,
             labels=self.labels,
         )
         return task

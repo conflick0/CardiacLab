@@ -13,7 +13,6 @@ from typing import Callable, Sequence
 
 from monai.inferers import Inferer, SlidingWindowInferer
 from monai.transforms import (
-    AddChanneld,
     Activationsd,
     AsDiscreted,
     EnsureChannelFirstd,
@@ -22,7 +21,6 @@ from monai.transforms import (
     ScaleIntensityRanged,
     Spacingd,
     Orientationd,
-    SqueezeDimd,
     ToNumpyd
 )
 
@@ -45,6 +43,9 @@ class SegmentationCardiac(BasicInferTask):
         dimension=3,
         spatial_size=(96, 96, 96),
         target_spacing=(0.7, 0.7, 1.0),
+        intensity=(-175, 250),
+        sw_batch_size=2,
+        overlap=0.25,
         description="A pre-trained model for volumetric (3D) segmentation of the spleen from CT image",
         **kwargs,
     ):
@@ -60,6 +61,9 @@ class SegmentationCardiac(BasicInferTask):
         self.model_state_dict = 'state_dict'
         self.spatial_size = spatial_size
         self.target_spacing = target_spacing
+        self.intensity = intensity
+        self.sw_batch_size = sw_batch_size
+        self.overlap = overlap
 
     def pre_transforms(self, data=None) -> Sequence[Callable]:
         return [
@@ -68,11 +72,22 @@ class SegmentationCardiac(BasicInferTask):
             EnsureChannelFirstd(keys="image"),
             Orientationd(keys=["image"], axcodes="RAS"),
             Spacingd(keys="image", pixdim=self.target_spacing, mode=("bilinear")),
-            ScaleIntensityRanged(keys="image", a_min=-175, a_max=250, b_min=0.0, b_max=1.0, clip=True),
+            ScaleIntensityRanged(
+                keys="image",
+                a_min=self.intensity[0],
+                a_max=self.intensity[1],
+                b_min=0.0,
+                b_max=1.0,
+                clip=True
+            ),
         ]
 
     def inferer(self, data=None) -> Inferer:
-        return SlidingWindowInferer(roi_size=self.spatial_size, sw_batch_size=2, overlap=0.25)
+        return SlidingWindowInferer(
+            roi_size=self.spatial_size,
+            sw_batch_size=self.sw_batch_size,
+            overlap=self.overlap
+        )
 
     def post_transforms(self, data=None) -> Sequence[Callable]:
         return [

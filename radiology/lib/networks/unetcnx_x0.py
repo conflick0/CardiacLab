@@ -10,24 +10,24 @@ import torch.nn.functional as F
 from torchvision.models.convnext import ConvNeXt, CNBlockConfig
 from torchvision.ops.stochastic_depth import StochasticDepth
 
-from monai.networks.blocks import UnetrBasicBlock, UnetrUpBlock, UnetOutBlock
+from monai.networks.blocks import UnetrBasicBlock, UnetrUpBlock, UnetOutBlock, UnetrPrUpBlock
 
 
 class ConvNormActivation(torch.nn.Sequential):
     def __init__(
-            self,
-            in_channels: int,
-            out_channels: int,
-            kernel_size: int = 3,
-            stride: int = 1,
-            padding: Optional[int] = None,
-            groups: int = 1,
-            norm_layer: Optional[Callable[..., torch.nn.Module]] = torch.nn.BatchNorm2d,
-            activation_layer: Optional[Callable[..., torch.nn.Module]] = torch.nn.ReLU,
-            dilation: int = 1,
-            inplace: Optional[bool] = True,
-            bias: Optional[bool] = None,
-            conv_layer: Callable[..., torch.nn.Module] = torch.nn.Conv2d,
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int = 3,
+        stride: int = 1,
+        padding: Optional[int] = None,
+        groups: int = 1,
+        norm_layer: Optional[Callable[..., torch.nn.Module]] = torch.nn.BatchNorm2d,
+        activation_layer: Optional[Callable[..., torch.nn.Module]] = torch.nn.ReLU,
+        dilation: int = 1,
+        inplace: Optional[bool] = True,
+        bias: Optional[bool] = None,
+        conv_layer: Callable[..., torch.nn.Module] = torch.nn.Conv2d,
     ) -> None:
 
         if padding is None:
@@ -81,19 +81,20 @@ class Conv3dNormActivation(ConvNormActivation):
     """
 
     def __init__(
-            self,
-            in_channels: int,
-            out_channels: int,
-            kernel_size: int = 3,
-            stride: int = 1,
-            padding: Optional[int] = None,
-            groups: int = 1,
-            norm_layer: Optional[Callable[..., torch.nn.Module]] = torch.nn.BatchNorm3d,
-            activation_layer: Optional[Callable[..., torch.nn.Module]] = torch.nn.ReLU,
-            dilation: int = 1,
-            inplace: Optional[bool] = True,
-            bias: Optional[bool] = None,
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int = 3,
+        stride: int = 1,
+        padding: Optional[int] = None,
+        groups: int = 1,
+        norm_layer: Optional[Callable[..., torch.nn.Module]] = torch.nn.BatchNorm3d,
+        activation_layer: Optional[Callable[..., torch.nn.Module]] = torch.nn.ReLU,
+        dilation: int = 1,
+        inplace: Optional[bool] = True,
+        bias: Optional[bool] = None,
     ) -> None:
+
         super().__init__(
             in_channels,
             out_channels,
@@ -129,11 +130,11 @@ class Permute(nn.Module):
 
 class CN3DBlock(nn.Module):
     def __init__(
-            self,
-            dim,
-            layer_scale: float,
-            stochastic_depth_prob: float,
-            norm_layer: Optional[Callable[..., nn.Module]] = None,
+        self,
+        dim,
+        layer_scale: float,
+        stochastic_depth_prob: float,
+        norm_layer: Optional[Callable[..., nn.Module]] = None,
     ) -> None:
         super().__init__()
         if norm_layer is None:
@@ -158,27 +159,27 @@ class CN3DBlock(nn.Module):
         return result
 
 
-class UNETCNX(ConvNeXt):
+class UNETCNX_X0(ConvNeXt):
     def __init__(
-            self,
-            in_channels=1,
-            out_channels=2,
-            feature_size=48,
-            patch_size=4,
-            spatial_dims=3,
-            norm_name='instance',
-            stochastic_depth_prob: float = 0.4,
-            layer_scale: float = 1e-6,
-            num_classes: int = 1000,
-            block: Optional[Callable[..., nn.Module]] = CN3DBlock,
-            norm_layer: Optional[Callable[..., nn.Module]] = None,
-            **kwargs: Any
+        self,
+        in_channels=1,
+        out_channels=2,
+        feature_size=48,
+        patch_size=4,
+        spatial_dims=3,
+        norm_name='instance',
+        stochastic_depth_prob: float=0.4,
+        layer_scale: float=1e-6,
+        num_classes: int=1000,
+        block: Optional[Callable[..., nn.Module]]=CN3DBlock,
+        norm_layer: Optional[Callable[..., nn.Module]]=None,
+        **kwargs: Any
     ) -> None:
         block_setting: List[CNBlockConfig] = [
             CNBlockConfig(feature_size * 2, feature_size * 4, 3),
             CNBlockConfig(feature_size * 4, feature_size * 8, 3),
             CNBlockConfig(feature_size * 8, feature_size * 16, 9),
-            CNBlockConfig(feature_size * 16, None, 3)
+            CNBlockConfig(feature_size * 16, feature_size * 32, 3)
         ]
 
         if norm_layer is None:
@@ -205,16 +206,28 @@ class UNETCNX(ConvNeXt):
             bias=True,
         )
 
+
         self.dec_features = []
         total_stage_blocks = sum(cnf.num_layers for cnf in block_setting)
         stage_block_id = 0
         for block_num, cnf in enumerate(block_setting, 1):
             # mdf orginal 2d downsampling to 3d downsampling
             if cnf.out_channels is not None:
-                self.features[block_num * 2] = nn.Sequential(
+                self.features[block_num * 2] =nn.Sequential(
                     norm_layer(cnf.input_channels),
                     nn.Conv3d(cnf.input_channels, cnf.out_channels, kernel_size=2, stride=2),
                 )
+
+        
+        self.encoder0 = UnetrBasicBlock(
+            spatial_dims=spatial_dims,
+            in_channels=in_channels,
+            out_channels=feature_size,
+            kernel_size=3,
+            stride=1,
+            norm_name=norm_name,
+            res_block=True,
+        )
 
         self.inc = self.features[0]
 
@@ -235,29 +248,30 @@ class UNETCNX(ConvNeXt):
 
         self.encoder4 = nn.Sequential(
             self.features[7],
+            self.features[8]
         )
 
-        self.decoder4 = UnetrUpBlock(
+        self.encoder5 = UnetrUpBlock(
             spatial_dims=spatial_dims,
-            in_channels=16 * feature_size,
-            out_channels=16 * feature_size,
-            kernel_size=3,
-            upsample_kernel_size=1,
-            norm_name=norm_name,
-            res_block=True,
-        )
-
-        self.decoder3 = UnetrUpBlock(
-            spatial_dims=spatial_dims,
-            in_channels=16 * feature_size,
-            out_channels=8 * feature_size,
+            in_channels=feature_size * 32,
+            out_channels=feature_size * 16,
             kernel_size=3,
             upsample_kernel_size=2,
             norm_name=norm_name,
             res_block=True,
         )
 
-        self.decoder2 = UnetrUpBlock(
+        self.decoder4 = UnetrUpBlock(
+            spatial_dims=spatial_dims,
+            in_channels=feature_size * 16,
+            out_channels=feature_size * 8,
+            kernel_size=3,
+            upsample_kernel_size=2,
+            norm_name=norm_name,
+            res_block=True,
+        )
+
+        self.decoder3 = UnetrUpBlock(
             spatial_dims=spatial_dims,
             in_channels=feature_size * 8,
             out_channels=feature_size * 4,
@@ -267,7 +281,7 @@ class UNETCNX(ConvNeXt):
             res_block=True,
         )
 
-        self.decoder1 = UnetrUpBlock(
+        self.decoder2 = UnetrUpBlock(
             spatial_dims=spatial_dims,
             in_channels=feature_size * 4,
             out_channels=feature_size * 2,
@@ -277,26 +291,42 @@ class UNETCNX(ConvNeXt):
             res_block=True,
         )
 
-        self.decoder0 = nn.ConvTranspose3d(
+        self.decoder1 = UnetrUpBlock(
+            spatial_dims=spatial_dims,
             in_channels=feature_size * 2,
             out_channels=feature_size,
-            kernel_size=patch_size,
-            stride=patch_size,
-            bias=False
+            kernel_size=3,
+            upsample_kernel_size=2,
+            norm_name=norm_name,
+            res_block=True,
         )
 
         self.out = UnetOutBlock(spatial_dims=spatial_dims, in_channels=feature_size, out_channels=out_channels)
 
+
     def forward(self, x):
+        enc0 = self.encoder0(x)
+
         inc = self.inc(x)
         enc1 = self.encoder1(inc)
         enc2 = self.encoder2(enc1)
         enc3 = self.encoder3(enc2)
         enc4 = self.encoder4(enc3)
+        dec4 = self.encoder5(enc4, enc3)
 
-        dec4 = self.decoder4(enc4, enc3)
-        dec3 = self.decoder3(dec4, enc2)
-        dec2 = self.decoder2(dec3, enc1)
-        dec1 = self.decoder1(dec2, inc)
-        dec0 = self.decoder0(dec1)
-        return self.out(dec0)
+        dec3 = self.decoder4(dec4, enc2)
+        dec2 = self.decoder3(dec3, enc1)
+        dec1 = self.decoder2(dec2, inc)
+        dec0 = self.decoder1(dec1, enc0)
+        out = self.out(dec0)
+        return out
+
+    def encode(self, x):
+        inc = self.inc(x)
+        enc1 = self.encoder1(inc)
+        enc2 = self.encoder2(enc1)
+        enc3 = self.encoder3(enc2)
+        enc4 = self.encoder4(enc3)
+        return enc4
+
+        

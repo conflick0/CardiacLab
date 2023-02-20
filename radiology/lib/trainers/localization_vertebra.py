@@ -118,7 +118,7 @@ class LocalizationVertebra(BasicTrainTask):
             ScaleIntensityd(keys="image", minv=-1.0, maxv=1.0),
             CropForegroundd(
                 keys=("image", "label"),
-                source_key="image",
+                source_key="label",
                 margin=10,
                 k_divisible=[self.roi_size[0], self.roi_size[1], self.roi_size[2]],
             ),
@@ -133,7 +133,7 @@ class LocalizationVertebra(BasicTrainTask):
     def norm_labels(self):
         # This should be applied along with NormalizeLabelsInDatasetd transform
         new_label_nums = {}
-        for idx, (key_label, _) in enumerate(self._labels.items(), start=1):
+        for idx, (key_label, val_label) in enumerate(self._labels.items(), start=1):
             if key_label != "background":
                 new_label_nums[key_label] = idx
             if key_label == "background":
@@ -141,10 +141,10 @@ class LocalizationVertebra(BasicTrainTask):
         return new_label_nums
 
     def train_key_metric(self, context: Context):
-        return region_wise_metrics(self.norm_labels(), self.TRAIN_KEY_METRIC, "train")
+        return region_wise_metrics(self.norm_labels(), "train_mean_dice", "train")
 
     def val_key_metric(self, context: Context):
-        return region_wise_metrics(self.norm_labels(), self.VAL_KEY_METRIC, "val")
+        return region_wise_metrics(self.norm_labels(), "val_mean_dice", "val")
 
     def train_handlers(self, context: Context):
         handlers = super().train_handlers(context)

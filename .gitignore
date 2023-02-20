@@ -2,7 +2,8 @@
 ### Example user template
 # My Project
 data
-radiology/model
+radiology/models
+run/config.toml
 logs
 bin
 

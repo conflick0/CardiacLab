@@ -17,12 +17,10 @@ from monai.apps.deepedit.transforms import (
     DiscardAddGuidanced,
     ResizeGuidanceMultipleLabelDeepEditd,
 )
-from monai.inferers import Inferer, SimpleInferer, SlidingWindowInferer
+from monai.inferers import Inferer, SimpleInferer
 from monai.transforms import (
     Activationsd,
     AsDiscreted,
-    AddChanneld,
-    AsChannelFirstd,
     EnsureChannelFirstd,
     EnsureTyped,
     LoadImaged,
@@ -69,7 +67,7 @@ class DeepEdit(BasicInferTask):
             output_json_key="result",
             **kwargs,
         )
-        self.model_state_dict = 'state_dict'
+
         self.spatial_size = spatial_size
         self.target_spacing = target_spacing
         self.number_intensity_ch = number_intensity_ch
@@ -109,7 +107,7 @@ class DeepEdit(BasicInferTask):
         return t
 
     def inferer(self, data=None) -> Inferer:
-        return SlidingWindowInferer(roi_size=(96, 96, 96), sw_batch_size=4, overlap=0.8)
+        return SimpleInferer()
 
     def inverse_transforms(self, data=None) -> Union[None, Sequence[Callable]]:
         return []  # Self-determine from the list of pre-transforms provided
@@ -117,8 +115,9 @@ class DeepEdit(BasicInferTask):
     def post_transforms(self, data=None) -> Sequence[Callable]:
         return [
             EnsureTyped(keys="pred", device=data.get("device") if data else None),
+            Activationsd(keys="pred", softmax=True),
             AsDiscreted(keys="pred", argmax=True),
-            Orientationd(keys=["pred"], axcodes="LPS"),
+            SqueezeDimd(keys="pred", dim=0),
             ToNumpyd(keys="pred"),
             Restored(keys="pred", ref_image="image"),
         ]
