@@ -1,16 +1,19 @@
 # CardiacLab
 ## Requirements
+*  miniconda (download [here](https://docs.conda.io/en/latest/miniconda.html))
 *  3D Slicer version 5.0 or later.
 *  3D Slicer MONAI Label Plugin. (install step [here](https://docs.monai.io/projects/label/en/latest/quickstart.html#install-monai-label-plugin-in-3d-slicer))
 * python 3.9
 ## Install
+```shell
+conda create --name CardiacLab python 3.9 -y
+```
 ```shell
 pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu113
 ```
 ```shell
 pip install -r requirements.txt
 ```
-
 ## Run Server
 ### By cmd
 ```shell
