@@ -21,7 +21,8 @@ from monai.transforms import (
     ScaleIntensityRanged,
     Spacingd,
     Orientationd,
-    ToNumpyd
+    ToNumpyd,
+    KeepLargestConnectedComponentd
 )
 
 from monailabel.interfaces.tasks.infer_v2 import InferType
@@ -59,11 +60,12 @@ class SegmentationCardiac(BasicInferTask):
             **kwargs,
         )
         self.model_state_dict = 'state_dict'
-        self.spatial_size = spatial_size
+        self.spatial_size = [int(s) for s in spatial_size]
         self.target_spacing = target_spacing
         self.intensity = intensity
         self.sw_batch_size = sw_batch_size
         self.overlap = overlap
+        self.applied_labels = [0, 1]  # for post process KeepLargestConnectedComponentd
 
     def pre_transforms(self, data=None) -> Sequence[Callable]:
         return [
@@ -94,6 +96,7 @@ class SegmentationCardiac(BasicInferTask):
             EnsureTyped(keys="pred", device=data.get("device") if data else None),
             AsDiscreted(keys="pred", argmax=True),
             Orientationd(keys=["pred"], axcodes="LPS"),
+            KeepLargestConnectedComponentd(keys=["pred"], applied_labels=self.applied_labels),
             ToNumpyd(keys="pred"),
             Restored(keys="pred", ref_image="image"),
         ]

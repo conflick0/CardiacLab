@@ -33,6 +33,10 @@ from monailabel.utils.others.generic import download_file, strtobool
 logger = logging.getLogger(__name__)
 
 
+def str2list(s):
+    return [float(w) for w in s.split(',')]
+
+
 class SegmentationCardiac(TaskConfig):
     def __init__(self):
         super().__init__()
@@ -61,9 +65,9 @@ class SegmentationCardiac(TaskConfig):
         download_ckp(self.path[0], self.conf.get('download_ckp_id', None))
 
         # Transform config
-        self.target_spacing = [0.7, 0.7, 1.0]  # target space for image
-        self.spatial_size = [96, 96, 96]  # train input size
-        self.intensity = [-175, 250]
+        self.target_spacing = str2list(self.conf.get('target_spacing', '0.7, 0.7, 1.0'))  # target space for image
+        self.spatial_size = str2list(self.conf.get('spatial_size', '128, 128, 128')) # train input size
+        self.intensity = str2list(self.conf.get('intensity', '-42, 423'))
 
         # Network
         self.network = network(

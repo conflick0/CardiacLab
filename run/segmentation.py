@@ -4,7 +4,7 @@ from config import config
 
 ROOT_DIR = Path(__file__).parent.parent
 
-config = config['segmentation_cardiac']
+config = config['segmentation_cardiac']['unetcnx_a1']
 
 os.system(
 f'monailabel start_server \
@@ -12,6 +12,9 @@ f'monailabel start_server \
 --studies {config["studies"]} \
 --conf models {config["models"]} \
 --conf network {config["network"]} \
---conf download_ckp_id {config["download_ckp_id"]}'
+--conf download_ckp_id {config["download_ckp_id"]} \
+--conf target_spacing "{config["target_spacing"]}" \
+--conf spatial_size "{config["spatial_size"]}" \
+--conf intensity "{config["intensity"]}"'
 )
 
