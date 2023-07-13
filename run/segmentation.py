@@ -4,7 +4,7 @@ from config import config
 
 ROOT_DIR = Path(__file__).parent.parent
 
-config = config['segmentation_cardiac']['unetcnx_a1']
+config = config['segmentation_cardiac'][config['model']]
 
 os.system(
 f'monailabel start_server \

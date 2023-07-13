@@ -38,6 +38,8 @@ monailabel start_server \
 ### By script
 * set config to `run/config.toml`.
 ```shell
+model = 'unetcnx_a1'
+
 [segmentation_cardiac.unetcnx_a1]
 app = "radiology"
 studies = "D:\\tmp\\data"
