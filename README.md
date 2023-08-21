@@ -1,4 +1,5 @@
 # CardiacLab
+https://github.com/conflick0/CardiacLab/blob/main/images/demo.mp4
 ## Requirements
 * miniconda (download [here](https://docs.conda.io/en/latest/miniconda.html))
 * 3D Slicer version 5.0 or later.
